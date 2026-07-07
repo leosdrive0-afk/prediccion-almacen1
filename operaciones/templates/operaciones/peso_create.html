@@ -1,20 +1,29 @@
 {% extends "base.html" %}
 
-{% block title %}Nuevo pesaje — SmartStock{% endblock %}
+{% block title %}Pesaje por lote — SmartStock{% endblock %}
 
 {% block content %}
 <style>
-  .peso-page { max-width: 720px; }
+  .peso-page { max-width: 860px; }
 
   .peso-page__header {
     background: var(--ink);
     color: #fff;
-    font-weight: 700;
-    font-size: 18px;
-    text-align: center;
-    padding: 14px 18px;
+    padding: 18px 20px;
     border-radius: var(--radius) var(--radius) 0 0;
-    letter-spacing: 0.02em;
+  }
+
+  .peso-page__header h1 {
+    margin: 0 0 6px;
+    font-size: 22px;
+    font-weight: 800;
+  }
+
+  .peso-page__header p {
+    margin: 0;
+    font-size: 14px;
+    color: #cbd5e1;
+    line-height: 1.5;
   }
 
   .peso-page__body {
@@ -22,27 +31,165 @@
     border-top: none;
     border-radius: 0 0 var(--radius) var(--radius);
     background: var(--surface);
-    padding: 20px;
+    padding: 22px;
+  }
+
+  /* Stepper */
+  .peso-steps {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 22px;
+  }
+
+  .peso-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: #fff;
+    opacity: 0.55;
+    transition: opacity 0.2s, border-color 0.2s, background 0.2s;
+  }
+
+  .peso-step.is-active {
+    opacity: 1;
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 8%, #fff);
+  }
+
+  .peso-step.is-done {
+    opacity: 1;
+    border-color: #86efac;
+    background: #f0fdf4;
+  }
+
+  .peso-step__num {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--muted);
+    font-weight: 800;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .peso-step.is-active .peso-step__num {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .peso-step.is-done .peso-step__num {
+    background: #22c55e;
+    color: #fff;
+  }
+
+  .peso-step__title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+
+  .peso-step__desc {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* Help box */
+  .peso-help {
+    padding: 14px 16px;
+    border-left: 4px solid var(--primary);
+    background: #f0fdfa;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.55;
+  }
+
+  .peso-help strong { display: block; margin-bottom: 6px; font-size: 15px; }
+
+  .peso-help ol {
+    margin: 8px 0 0;
+    padding-left: 20px;
+  }
+
+  .peso-help li { margin-bottom: 4px; }
+
+  /* Config sections */
+  .peso-section {
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .peso-section:last-of-type { border-bottom: none; padding-bottom: 0; }
+
+  .peso-section__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .peso-section__badge {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .peso-section__title {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .peso-section__hint {
+    font-size: 13px;
+    color: var(--muted);
+    margin: 0 0 12px 36px;
   }
 
   .peso-balanzas-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 8px;
   }
 
   .peso-balanza-btn {
     appearance: none;
-    min-height: 110px;
+    min-height: 72px;
     border: 2px solid var(--border);
     border-radius: var(--radius-sm);
     background: #fff;
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 700;
-    color: var(--text);
     cursor: pointer;
-    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  }
+
+  .peso-balanza-btn small {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    margin-top: 4px;
   }
 
   .peso-balanza-btn:hover {
@@ -53,8 +200,17 @@
   .peso-balanza-btn.is-selected {
     border-color: var(--primary);
     background: color-mix(in srgb, var(--primary) 12%, #fff);
-    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 18%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
   }
+
+  .peso-balanza-selected {
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 20px;
+    margin-bottom: 4px;
+  }
+
+  .peso-balanza-selected strong { color: var(--primary); }
 
   .peso-tipo-producto {
     display: grid;
@@ -62,28 +218,27 @@
     gap: 10px;
   }
 
-  .peso-tipo-option {
-    position: relative;
-    display: block;
-    cursor: pointer;
-  }
-
-  .peso-tipo-option input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-  }
+  .peso-tipo-option { position: relative; display: block; cursor: pointer; }
+  .peso-tipo-option input { position: absolute; opacity: 0; pointer-events: none; }
 
   .peso-tipo-option span {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 48px;
+    min-height: 56px;
     border: 2px solid var(--border);
     border-radius: var(--radius-sm);
     font-weight: 700;
     background: #fff;
-    transition: border-color 0.2s ease, background 0.2s ease;
+    gap: 2px;
+  }
+
+  .peso-tipo-option span em {
+    font-style: normal;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
   }
 
   .peso-tipo-option input:checked + span {
@@ -91,298 +246,640 @@
     background: color-mix(in srgb, var(--primary) 12%, #fff);
   }
 
-  .peso-page__footer {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 22px;
+  /* Batch summary cards */
+  .peso-lote-card {
+    border: 2px solid var(--primary);
+    border-radius: var(--radius-sm);
+    background: #f0fdfa;
+    padding: 16px;
+    margin-bottom: 18px;
   }
 
-  .peso-resumen {
+  .peso-lote-card__title {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--primary-2);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .peso-lote-grid {
     display: grid;
-    gap: 6px;
-    margin-bottom: 4px;
-    font-size: 14px;
-    color: var(--muted);
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
   }
 
-  .peso-resumen strong { color: var(--text); }
+  .peso-lote-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
 
+  .peso-lote-item__label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .peso-lote-item__value {
+    font-size: 14px;
+    font-weight: 700;
+    word-break: break-word;
+  }
+
+  /* Status bar */
+  .peso-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    background: #f8fafc;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+
+  .peso-status__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #94a3b8;
+    flex-shrink: 0;
+  }
+
+  .peso-status.success { background: #f0fdf4; border-color: #86efac; }
+  .peso-status.success .peso-status__dot { background: #22c55e; animation: blink 2s infinite; }
+  .peso-status.error { background: #fef2f2; border-color: #fca5a5; }
+  .peso-status.error .peso-status__dot { background: #ef4444; }
+  .peso-status.waiting { background: #fffbeb; border-color: #fcd34d; }
+  .peso-status.waiting .peso-status__dot { background: #f59e0b; }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Live panel */
   .peso-live-panel {
-    border: 2px solid var(--border);
+    border: 2px solid #0f172a;
     border-radius: var(--radius-sm);
     background: #0f172a;
     color: #fff;
-    padding: 20px;
-    margin-bottom: 20px;
+    padding: 22px;
+    margin-bottom: 16px;
     text-align: center;
   }
 
   .peso-live-panel.is-new {
     animation: pesoPulse 0.8s ease;
     border-color: #22c55e;
-    box-shadow: 0 0 0 4px color-mix(in srgb, #22c55e 25%, transparent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, #22c55e 30%, transparent);
   }
 
   @keyframes pesoPulse {
     0% { transform: scale(1); }
-    40% { transform: scale(1.02); }
+    40% { transform: scale(1.01); }
     100% { transform: scale(1); }
   }
 
   .peso-live-label {
-    font-size: 13px;
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     color: #94a3b8;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
   }
 
   .peso-live-value {
-    font-size: 48px;
+    font-size: 56px;
     font-weight: 800;
     line-height: 1;
     font-variant-numeric: tabular-nums;
   }
 
   .peso-live-value span {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 600;
-    color: #94a3b8;
-    margin-left: 6px;
+    color: #64748b;
+    margin-left: 4px;
   }
 
-  .peso-live-meta {
-    margin-top: 10px;
+  .peso-live-meta { margin-top: 8px; font-size: 13px; color: #94a3b8; }
+
+  .peso-auto-hint {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 8px;
     font-size: 13px;
-    color: #94a3b8;
+    color: #cbd5e1;
+    line-height: 1.45;
   }
 
   .peso-live-actions {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-top: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 18px;
   }
 
-  .peso-live-actions .btn { min-width: 160px; }
+  .peso-live-actions .btn { font-size: 13px; padding: 10px 8px; }
 
-  @media (max-width: 768px) {
-    .peso-balanzas-grid,
+  .peso-live-actions .btn-primary { grid-column: 1 / -1; font-size: 15px; padding: 12px; }
+
+  .peso-captures-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 20px 0 10px;
+    gap: 10px;
+  }
+
+  .peso-captures-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .peso-captures-badge {
+    background: var(--ink);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+
+  .peso-captures-empty {
+    text-align: center;
+    padding: 24px 16px !important;
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .peso-captures-empty strong { display: block; color: var(--text); margin-bottom: 4px; }
+
+  tr.is-new { animation: rowFlash 1.2s ease; }
+
+  @keyframes rowFlash {
+    from { background: color-mix(in srgb, #22c55e 30%, transparent); }
+    to { background: transparent; }
+  }
+
+  @media (max-width: 640px) {
+    .peso-steps,
+    .peso-lote-grid,
     .peso-tipo-producto,
     .peso-form-grid-2,
-    .peso-form-grid-qty { grid-template-columns: 1fr; }
+    .peso-live-actions { grid-template-columns: 1fr; }
 
-    .peso-balanza-btn { min-height: 88px; font-size: 18px; }
-  }
-
-  @media (max-width: 540px) {
-    .peso-balanzas-grid,
-    .peso-tipo-producto { grid-template-columns: 1fr; }
+    .peso-balanzas-grid { grid-template-columns: 1fr 1fr; }
+    .peso-live-actions .btn-primary { grid-column: 1; }
   }
 </style>
 
 <div class="page peso-page">
   <div class="card" style="padding:0; overflow:hidden; box-shadow:var(--shadow-md);">
-    <div class="peso-page__header">Registro de pesaje</div>
+    <div class="peso-page__header">
+      <h1>Recepción de mercancía</h1>
+      <p>Configure el lote una vez y pese varios sacos o cajas seguidos sin repetir los mismos datos.</p>
+    </div>
 
     <div class="peso-page__body">
-      <div class="toolbar" style="margin-bottom:16px;">
-        <a class="btn btn-secondary" href="{% url 'operaciones:peso_list' %}">Mis registros</a>
+      <div class="toolbar" style="margin-bottom:18px;">
+        <a class="btn btn-secondary" href="{% url 'operaciones:peso_list' %}">Ver historial de pesajes</a>
       </div>
 
-      <p class="page-subtitle" style="margin-top:0; text-align:center;">
-        Seleccione la balanza, espere la lectura IoT y complete los datos para registrar el pesaje.
-      </p>
-
-      <div class="peso-balanzas-grid" role="group" aria-label="Selección de balanza">
-        <button type="button" class="peso-balanza-btn" data-balanza="1">Balanza 1</button>
-        <button type="button" class="peso-balanza-btn" data-balanza="3">Balanza 3</button>
-        <button type="button" class="peso-balanza-btn" data-balanza="2">Balanza 2</button>
-        <button type="button" class="peso-balanza-btn" data-balanza="4">Balanza 4</button>
-      </div>
-
-      <div class="alert" id="peso_estado">
-        Estado: <strong>Conectando...</strong>
-      </div>
-
-      <div class="peso-live-panel" id="peso_live_panel">
-        <div class="peso-live-label">Peso en tiempo real</div>
-        <div class="peso-live-value">
-          <span id="peso_live_display">—</span><span>kg</span>
+      <!-- Indicador de pasos -->
+      <div class="peso-steps">
+        <div class="peso-step is-active" id="step_indicator_1">
+          <div class="peso-step__num">1</div>
+          <div>
+            <div class="peso-step__title">Configurar lote</div>
+            <div class="peso-step__desc">Balanza, proveedor y producto (solo una vez)</div>
+          </div>
         </div>
-        <div class="peso-live-meta" id="peso_live_meta">Seleccione una balanza para ver lecturas IoT</div>
-        <div class="peso-live-actions">
-          <button type="button" class="btn btn-secondary" id="peso_reiniciar_btn" disabled>
-            Reiniciar peso
-          </button>
+        <div class="peso-step" id="step_indicator_2">
+          <div class="peso-step__num">2</div>
+          <div>
+            <div class="peso-step__title">Pesar continuamente</div>
+            <div class="peso-step__desc">Coloque cada unidad en la balanza — se guarda solo</div>
+          </div>
         </div>
       </div>
 
-      <form class="form" id="peso_config_form" onsubmit="event.preventDefault(); registrarPesaje();">
-        <input type="hidden" id="mock_balanza" name="balanza" value="" required />
+      <!-- PASO 1 -->
+      <section id="fase_config">
+        <div class="peso-help">
+          <strong>¿Cómo funciona?</strong>
+          Complete los datos del proveedor y producto. Al iniciar el lote, solo tendrá que colocar cada saco o caja en la balanza; el sistema registrará el peso automáticamente.
+        </div>
 
-        <div class="form-grid-2 peso-form-grid-2">
-          <div>
-            <label for="mock_operador">Operador</label>
-            <select id="mock_operador" required>
-              <option value="">— Seleccione operador —</option>
-              <option value="{{ user.get_full_name|default:user.username }}" selected>
-                {{ user.get_full_name|default:user.username }}
-              </option>
-              <option value="Edilberto Vargas">Edilberto Vargas</option>
-              <option value="María López">María López</option>
-              <option value="Carlos Mendoza">Carlos Mendoza</option>
-            </select>
+        <div class="peso-section">
+          <div class="peso-section__head">
+            <div class="peso-section__badge">1</div>
+            <h2 class="peso-section__title">Seleccione la balanza</h2>
           </div>
-          <div>
-            <label for="mock_turno">Turno</label>
-            <select id="mock_turno" required>
-              <option value="">— Seleccione turno —</option>
-              <option value="mañana">Mañana (06:00 – 14:00)</option>
-              <option value="tarde">Tarde (14:00 – 22:00)</option>
-              <option value="noche">Noche (22:00 – 06:00)</option>
-            </select>
+          <p class="peso-section__hint">Elija cuál de las 4 balanzas está conectada y enviando datos.</p>
+
+          <div class="peso-balanzas-grid" role="group" aria-label="Selección de balanza">
+            <button type="button" class="peso-balanza-btn" data-balanza="1">
+              Balanza 1
+              <small>balanza-01</small>
+            </button>
+            <button type="button" class="peso-balanza-btn" data-balanza="2">
+              Balanza 2
+              <small>balanza-02</small>
+            </button>
+            <button type="button" class="peso-balanza-btn" data-balanza="3">
+              Balanza 3
+              <small>balanza-03</small>
+            </button>
+            <button type="button" class="peso-balanza-btn" data-balanza="4">
+              Balanza 4
+              <small>balanza-04</small>
+            </button>
+          </div>
+          <div class="peso-balanza-selected" id="balanza_hint">Ninguna balanza seleccionada</div>
+        </div>
+
+        <form class="form" id="lote_config_form" onsubmit="event.preventDefault(); iniciarLote();">
+          <input type="hidden" id="balanza_num" value="" />
+
+          <div class="peso-section">
+            <div class="peso-section__head">
+              <div class="peso-section__badge">2</div>
+              <h2 class="peso-section__title">Datos del lote</h2>
+            </div>
+            <p class="peso-section__hint">Estos datos se aplicarán a todos los pesajes de este lote.</p>
+
+            <div style="margin-bottom:16px;">
+              <label>Tipo de empaque</label>
+              <div class="peso-tipo-producto" role="radiogroup">
+                <label class="peso-tipo-option">
+                  <input type="radio" name="tipo_producto" value="saco" required />
+                  <span>Saco<em>Peso ref: 1.0 kg/u</em></span>
+                </label>
+                <label class="peso-tipo-option">
+                  <input type="radio" name="tipo_producto" value="caja" />
+                  <span>Caja<em>Peso ref: 0.8 kg/u</em></span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-grid-2 peso-form-grid-2">
+              <div>
+                <label for="proveedor">Proveedor</label>
+                <input type="text" id="proveedor" placeholder="Ej. Agropecuaria Norte" required />
+              </div>
+              <div>
+                <label for="producto">Producto</label>
+                <input type="text" id="producto" placeholder="Ej. Arroz 50 kg" required />
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary" id="iniciar_lote_btn" style="width:100%; padding:14px; font-size:16px;">
+              Iniciar lote → Comenzar a pesar
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- PASO 2 -->
+      <section id="fase_pesaje" hidden>
+        <div class="peso-lote-card" id="batch_summary"></div>
+
+        <div class="peso-help">
+          <strong>Modo pesaje continuo activo</strong>
+          <ol>
+            <li>Coloque un saco o caja en la balanza.</li>
+            <li>El peso se guardará <strong>automáticamente</strong> cuando llegue la lectura.</li>
+            <li>Retire la mercancía, coloque la siguiente y repita.</li>
+            <li>Cuando termine, pulse <strong>Finalizar lote</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="peso-status waiting" id="peso_estado">
+          <div class="peso-status__dot"></div>
+          <div id="peso_estado_text">Conectando con la balanza...</div>
+        </div>
+
+        <div class="peso-live-panel" id="peso_live_panel">
+          <div class="peso-live-label">Peso actual en balanza</div>
+          <div class="peso-live-value">
+            <span id="peso_live_display">—</span><span>kg</span>
+          </div>
+          <div class="peso-live-meta" id="peso_live_meta">Esperando primera lectura...</div>
+          <div class="peso-auto-hint">
+            ⚡ Cada nueva lectura IoT se registra sola en la tabla de abajo. Use el botón manual solo si necesita forzar una captura.
+          </div>
+          <div class="peso-live-actions">
+            <button type="button" class="btn btn-primary" id="capturar_btn">Capturar peso manualmente</button>
+            <button type="button" class="btn btn-secondary" id="reiniciar_btn">Poner balanza en cero</button>
+            <button type="button" class="btn btn-secondary" id="cerrar_lote_btn">Finalizar lote</button>
           </div>
         </div>
 
-        <div>
-          <label>Tipo de producto</label>
-          <div class="peso-tipo-producto" role="radiogroup" aria-label="Tipo de producto">
-            <label class="peso-tipo-option">
-              <input type="radio" name="tipo_producto" value="saco" required />
-              <span>Saco</span>
-            </label>
-            <label class="peso-tipo-option">
-              <input type="radio" name="tipo_producto" value="caja" />
-              <span>Caja</span>
-            </label>
-          </div>
+        <div class="peso-captures-header">
+          <h2>Unidades pesadas en este lote</h2>
+          <span class="peso-captures-badge" id="captures_count">0 unidades</span>
         </div>
 
-        <div id="peso_resumen" class="peso-resumen" hidden></div>
-
-        <div class="form-grid-2 peso-form-grid-2">
-          <div>
-            <label for="mock_cliente">Cliente</label>
-            <input type="text" id="mock_cliente" placeholder="Ej. Cliente A" required />
-          </div>
-          <div>
-            <label for="mock_producto">Producto</label>
-            <input type="text" id="mock_producto" placeholder="Ej. Arroz" required />
-          </div>
-        </div>
-
-        <div class="form-grid-auto peso-form-grid-qty">
-          <div>
-            <label for="mock_almacen">Almacén</label>
-            <input type="text" id="mock_almacen" placeholder="Ej. Almacén Central" required />
-          </div>
-          <div>
-            <label for="mock_cantidad">Cantidad (unidades)</label>
-            <input type="number" id="mock_cantidad" min="1" value="1" required />
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="submit" class="btn btn-primary" id="peso_registrar_btn">Registrar pesaje</button>
-        </div>
-      </form>
-
-      <div id="peso_result" class="card card-pad" style="display:none; margin-top:16px; background:#f8fafc;">
-        <h2 style="margin:0 0 10px 0; font-size:18px;">Pesaje registrado</h2>
         <div class="table-wrap">
-          <table class="table">
-            <tbody>
-              <tr><th style="width:220px;">ID</th><td id="res_id">—</td></tr>
-              <tr><th>Balanza</th><td id="res_balanza">—</td></tr>
-              <tr><th>Operador</th><td id="res_operador">—</td></tr>
-              <tr><th>Turno</th><td id="res_turno">—</td></tr>
-              <tr><th>Tipo de producto</th><td id="res_tipo">—</td></tr>
-              <tr><th>Cliente</th><td id="res_cliente">—</td></tr>
-              <tr><th>Producto</th><td id="res_producto">—</td></tr>
-              <tr><th>Almacén</th><td id="res_almacen">—</td></tr>
-              <tr><th>Cantidad</th><td id="res_cantidad">—</td></tr>
-              <tr><th>Peso esperado</th><td><span id="peso_esperado"></span> kg</td></tr>
-              <tr><th>Peso real (IoT)</th><td><span id="peso_real"></span> kg</td></tr>
-              <tr><th>Diferencia</th><td><span id="peso_diff"></span> kg</td></tr>
+          <table class="table" id="captures_table">
+            <thead>
+              <tr>
+                <th>Unidad #</th>
+                <th>Peso medido</th>
+                <th>Peso esperado</th>
+                <th>Diferencia</th>
+                <th>Hora</th>
+              </tr>
+            </thead>
+            <tbody id="captures_body">
+              <tr id="captures_empty_row">
+                <td colspan="5" class="peso-captures-empty">
+                  <strong>Aún no hay unidades registradas</strong>
+                  Coloque la primera unidad en la balanza para comenzar.
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <div class="form-actions" style="margin-top:14px;">
-          <a href="#" id="res_detail_link" class="btn btn-primary">Ver detalle</a>
-          <a href="{% url 'operaciones:peso_list' %}" class="btn btn-secondary">Mis registros</a>
-        </div>
-      </div>
-
-      <div class="peso-page__footer">
-        <a href="{% url 'operaciones:peso_list' %}" class="btn btn-secondary">Mis registros</a>
-        <a href="{% url 'home' %}" class="btn btn-primary">Volver al inicio</a>
-      </div>
+      </section>
     </div>
   </div>
 </div>
 
 <script>
-  const PESO_LIVE_URL = "{% url 'operaciones:peso_live' %}";
-  const PESO_REINICIAR_URL = "{% url 'operaciones:peso_reiniciar' %}";
-  const PESO_REGISTRAR_URL = "{% url 'operaciones:peso_registrar' %}";
+  const URLS = {
+    live: "{% url 'operaciones:peso_live' %}",
+    reiniciar: "{% url 'operaciones:peso_reiniciar' %}",
+    loteActivo: "{% url 'operaciones:peso_lote_activo' %}",
+    loteIniciar: "{% url 'operaciones:peso_lote_iniciar' %}",
+    loteCapturar: "{% url 'operaciones:peso_lote_capturar' %}",
+    loteCerrar: "{% url 'operaciones:peso_lote_cerrar' %}",
+  };
   const CSRF_TOKEN = "{{ csrf_token }}";
+  const DEFAULT_OPERADOR = "{{ user.get_full_name|default:user.username|escapejs }}";
 
-  const balanzaInput = document.getElementById('mock_balanza');
+  const faseConfig = document.getElementById('fase_config');
+  const fasePesaje = document.getElementById('fase_pesaje');
+  const step1 = document.getElementById('step_indicator_1');
+  const step2 = document.getElementById('step_indicator_2');
+  const balanzaInput = document.getElementById('balanza_num');
+  const balanzaHint = document.getElementById('balanza_hint');
   const balanzaButtons = document.querySelectorAll('.peso-balanza-btn');
-  const resumenEl = document.getElementById('peso_resumen');
+  const batchSummary = document.getElementById('batch_summary');
+  const pesoEstado = document.getElementById('peso_estado');
+  const pesoEstadoText = document.getElementById('peso_estado_text');
   const pesoLivePanel = document.getElementById('peso_live_panel');
   const pesoLiveDisplay = document.getElementById('peso_live_display');
   const pesoLiveMeta = document.getElementById('peso_live_meta');
-  const pesoReiniciarBtn = document.getElementById('peso_reiniciar_btn');
-  const pesoRegistrarBtn = document.getElementById('peso_registrar_btn');
-  const pesoEstado = document.getElementById('peso_estado');
+  const capturesBody = document.getElementById('captures_body');
+  const capturesCount = document.getElementById('captures_count');
+  const capturarBtn = document.getElementById('capturar_btn');
+  const reiniciarBtn = document.getElementById('reiniciar_btn');
+  const cerrarLoteBtn = document.getElementById('cerrar_lote_btn');
 
+  let activeBatch = null;
   let lastReadingId = 0;
   let currentLiveWeight = 0;
-  let pulseTimer = null;
+  let capturedReadingIds = new Set();
+  let autoCaptureInFlight = false;
+  let pollTimer = null;
 
-  const turnoLabels = {
-    mañana: 'Mañana (06:00 – 14:00)',
-    tarde: 'Tarde (14:00 – 22:00)',
-    noche: 'Noche (22:00 – 06:00)',
-  };
+  const tipoLabels = { saco: 'Saco', caja: 'Caja' };
 
   function deviceIdFromBalanza(num) {
     return `balanza-${String(num).padStart(2, '0')}`;
   }
 
-  function selectedDeviceId() {
-    return balanzaInput.value ? deviceIdFromBalanza(balanzaInput.value) : '';
+  function jsonHeaders() {
+    return { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF_TOKEN };
   }
 
-  function flashNewReading() {
-    pesoLivePanel.classList.remove('is-new');
-    void pesoLivePanel.offsetWidth;
-    pesoLivePanel.classList.add('is-new');
-    clearTimeout(pulseTimer);
-    pulseTimer = setTimeout(() => pesoLivePanel.classList.remove('is-new'), 900);
-  }
-
-  function setEstado(html, type) {
-    pesoEstado.innerHTML = html;
-    pesoEstado.classList.remove('success', 'error');
+  function setEstado(text, type) {
+    pesoEstadoText.textContent = text;
+    pesoEstado.className = 'peso-status';
     if (type) pesoEstado.classList.add(type);
   }
 
-  async function pollPesoLive() {
-    const deviceId = selectedDeviceId();
-    const params = new URLSearchParams();
-    if (lastReadingId > 0) params.set('since', String(lastReadingId));
-    if (deviceId) params.set('deviceId', deviceId);
+  function updateSteps(phase) {
+    step1.classList.toggle('is-active', phase === 'config');
+    step1.classList.toggle('is-done', phase === 'pesaje');
+    step2.classList.toggle('is-active', phase === 'pesaje');
+    step2.classList.toggle('is-done', false);
+  }
+
+  function flashPanel() {
+    pesoLivePanel.classList.remove('is-new');
+    void pesoLivePanel.offsetWidth;
+    pesoLivePanel.classList.add('is-new');
+    setTimeout(() => pesoLivePanel.classList.remove('is-new'), 900);
+  }
+
+  function renderBatchSummary(batch) {
+    batchSummary.innerHTML = `
+      <div class="peso-lote-card__title">Lote #${batch.batchId} en curso</div>
+      <div class="peso-lote-grid">
+        <div class="peso-lote-item">
+          <div class="peso-lote-item__label">Balanza</div>
+          <div class="peso-lote-item__value">${batch.deviceId}</div>
+        </div>
+        <div class="peso-lote-item">
+          <div class="peso-lote-item__label">Empaque</div>
+          <div class="peso-lote-item__value">${tipoLabels[batch.tipoProducto] || batch.tipoProducto}</div>
+        </div>
+        <div class="peso-lote-item">
+          <div class="peso-lote-item__label">Proveedor</div>
+          <div class="peso-lote-item__value">${batch.proveedor}</div>
+        </div>
+        <div class="peso-lote-item">
+          <div class="peso-lote-item__label">Producto</div>
+          <div class="peso-lote-item__value">${batch.producto}</div>
+        </div>
+      </div>`;
+  }
+
+  function updateCapturesCount(n) {
+    capturesCount.textContent = n === 1 ? '1 unidad' : `${n} unidades`;
+  }
+
+  function renderCaptures(captures) {
+    capturedReadingIds = new Set((captures || []).map((c) => c.readingId).filter(Boolean));
+    updateCapturesCount(captures.length);
+
+    if (!captures.length) {
+      capturesBody.innerHTML = `
+        <tr id="captures_empty_row">
+          <td colspan="5" class="peso-captures-empty">
+            <strong>Aún no hay unidades registradas</strong>
+            Coloque la primera unidad en la balanza para comenzar.
+          </td>
+        </tr>`;
+      return;
+    }
+
+    capturesBody.innerHTML = captures.map((c) => `
+      <tr data-record-id="${c.recordId}">
+        <td><a href="${c.detailUrl}"><strong>${c.sequence}</strong></a></td>
+        <td>${Number(c.pesoRealKg).toFixed(3)} kg</td>
+        <td>${Number(c.pesoEsperadoKg).toFixed(3)} kg</td>
+        <td>${Number(c.pesoDiferenciaKg).toFixed(3)} kg</td>
+        <td>${new Date(c.createdAt).toLocaleTimeString()}</td>
+      </tr>
+    `).join('');
+  }
+
+  function appendCapture(capture, highlight = false) {
+    document.getElementById('captures_empty_row')?.remove();
+    if (capture.readingId) capturedReadingIds.add(capture.readingId);
+
+    const row = document.createElement('tr');
+    row.dataset.recordId = capture.recordId;
+    if (highlight) row.classList.add('is-new');
+    row.innerHTML = `
+      <td><a href="${capture.detailUrl}"><strong>${capture.sequence}</strong></a></td>
+      <td>${Number(capture.pesoRealKg).toFixed(3)} kg</td>
+      <td>${Number(capture.pesoEsperadoKg).toFixed(3)} kg</td>
+      <td>${Number(capture.pesoDiferenciaKg).toFixed(3)} kg</td>
+      <td>${new Date(capture.createdAt).toLocaleTimeString()}</td>
+    `;
+    capturesBody.appendChild(row);
+
+    const count = capturesBody.querySelectorAll('tr[data-record-id]').length;
+    updateCapturesCount(count);
+    if (highlight) setTimeout(() => row.classList.remove('is-new'), 1200);
+  }
+
+  function showPesajePhase(batch, captures) {
+    activeBatch = batch;
+    faseConfig.hidden = true;
+    fasePesaje.hidden = false;
+    updateSteps('pesaje');
+    renderBatchSummary(batch);
+    renderCaptures(captures || []);
+    pollPesoLive();
+    if (!pollTimer) pollTimer = setInterval(pollPesoLive, 2000);
+  }
+
+  function showConfigPhase() {
+    activeBatch = null;
+    capturedReadingIds.clear();
+    lastReadingId = 0;
+    faseConfig.hidden = false;
+    fasePesaje.hidden = true;
+    updateSteps('config');
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  async function cargarLoteActivo() {
+    try {
+      const response = await fetch(URLS.loteActivo);
+      const data = await response.json();
+      if (response.ok && data.success && data.batch) {
+        showPesajePhase(data.batch, data.captures);
+      }
+    } catch { /* silencioso al cargar */ }
+  }
+
+  async function iniciarLote() {
+    if (!balanzaInput.value) {
+      alert('Primero seleccione una balanza (Paso 1).');
+      return;
+    }
+    const tipo = document.querySelector('input[name="tipo_producto"]:checked');
+    if (!tipo) {
+      alert('Seleccione si es saco o caja.');
+      return;
+    }
+
+    const payload = {
+      deviceId: deviceIdFromBalanza(balanzaInput.value),
+      tipoProducto: tipo.value,
+      proveedor: document.getElementById('proveedor').value.trim(),
+      producto: document.getElementById('producto').value.trim(),
+      operador: DEFAULT_OPERADOR,
+    };
+
+    const btn = document.getElementById('iniciar_lote_btn');
+    btn.disabled = true;
+    btn.textContent = 'Iniciando lote...';
 
     try {
-      const response = await fetch(`${PESO_LIVE_URL}?${params.toString()}`);
+      const response = await fetch(URLS.loteIniciar, {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: JSON.stringify(payload),
+      });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        setEstado(`Estado: <strong>Error al leer balanza</strong> — ${data.error || 'sin detalle'}`, 'error');
+        alert(data.error || 'No se pudo iniciar el lote.');
+        return;
+      }
+      showPesajePhase(data.batch, []);
+      setEstado('Lote iniciado. Coloque la primera unidad en la balanza.', 'success');
+    } catch {
+      alert('Error de conexión. Verifique que el servidor esté activo.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Iniciar lote → Comenzar a pesar';
+    }
+  }
+
+  async function capturarPeso(auto = false) {
+    if (!activeBatch || autoCaptureInFlight) return;
+    autoCaptureInFlight = true;
+    if (!auto) capturarBtn.disabled = true;
+
+    try {
+      const response = await fetch(URLS.loteCapturar, {
+        method: 'POST',
+        headers: jsonHeaders(),
+        body: '{}',
+      });
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        if (!auto) alert(data.error || 'No se pudo capturar. Asegúrese de que la balanza tenga un peso.');
+        return;
+      }
+
+      activeBatch = data.batch;
+      appendCapture(data.capture, true);
+      flashPanel();
+      setEstado(
+        `Unidad #${data.capture.sequence} guardada (${Number(data.capture.pesoRealKg).toFixed(3)} kg). Coloque la siguiente.`,
+        'success'
+      );
+    } catch {
+      if (!auto) alert('Error de conexión al capturar.');
+    } finally {
+      autoCaptureInFlight = false;
+      if (!auto) capturarBtn.disabled = false;
+    }
+  }
+
+  async function pollPesoLive() {
+    if (!activeBatch) return;
+
+    const deviceId = activeBatch.deviceId;
+    const params = new URLSearchParams({ deviceId });
+    if (lastReadingId > 0) params.set('since', String(lastReadingId));
+
+    try {
+      const response = await fetch(`${URLS.live}?${params.toString()}`);
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        setEstado('No se pudo leer la balanza. Reintentando...', 'error');
         return;
       }
 
@@ -390,138 +887,84 @@
         lastReadingId = Math.max(lastReadingId, data.latestReadingId);
       }
 
-      if (!deviceId) {
-        currentLiveWeight = 0;
-        pesoLiveDisplay.textContent = '—';
-        pesoLiveMeta.textContent = 'Seleccione una balanza para ver lecturas IoT';
-        pesoReiniciarBtn.disabled = true;
-        setEstado('Estado: <strong>Conectado</strong> — esperando selección de balanza', 'success');
-        return;
-      }
-
-      pesoReiniciarBtn.disabled = false;
       const device = (data.devices || []).find((d) => d.deviceId === deviceId);
-
-      if (device) {
+      if (device && device.weightKg > 0) {
         currentLiveWeight = Number(device.weightKg);
         pesoLiveDisplay.textContent = currentLiveWeight.toFixed(3);
-        const updated = device.updatedAt ? new Date(device.updatedAt).toLocaleString() : '—';
-        pesoLiveMeta.textContent = `${deviceId} · última actualización: ${updated}`;
+        pesoLiveMeta.textContent = `Última actualización: ${new Date(device.updatedAt).toLocaleTimeString()}`;
+
         if (data.hasNew) {
-          flashNewReading();
-          setEstado(`Estado: <strong>Nueva lectura recibida</strong> — ${currentLiveWeight.toFixed(3)} kg`, 'success');
+          flashPanel();
+          const readingId = device.readingId;
+          if (readingId && !capturedReadingIds.has(readingId)) {
+            await capturarPeso(true);
+          }
         } else {
-          setEstado('Estado: <strong>Conectado</strong> — escuchando lecturas IoT', 'success');
+          setEstado('Balanza conectada. Esperando que coloque la siguiente unidad.', 'success');
         }
       } else {
         currentLiveWeight = 0;
         pesoLiveDisplay.textContent = '0.000';
-        pesoLiveMeta.textContent = `${deviceId} · sin lecturas aún`;
-        setEstado('Estado: <strong>Conectado</strong> — sin lecturas para esta balanza', 'success');
+        pesoLiveMeta.textContent = 'Sin peso en balanza — coloque una unidad';
+        setEstado('Balanza en cero. Coloque una unidad para pesar.', 'waiting');
       }
     } catch {
-      setEstado('Estado: <strong>Sin conexión</strong> — reintentando...', 'error');
+      setEstado('Sin conexión con el servidor. Reintentando...', 'error');
     }
   }
 
   async function reiniciarPeso() {
-    const deviceId = selectedDeviceId();
-    if (!deviceId) return;
+    if (!activeBatch) return;
+    if (!confirm('¿Poner la balanza en cero? Use esto antes de pesar una nueva unidad si el peso anterior no se borró.')) return;
 
-    pesoReiniciarBtn.disabled = true;
+    reiniciarBtn.disabled = true;
     try {
-      const response = await fetch(PESO_REINICIAR_URL, {
+      const response = await fetch(URLS.reiniciar, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': CSRF_TOKEN,
-        },
-        body: JSON.stringify({ deviceId }),
+        headers: jsonHeaders(),
+        body: JSON.stringify({ deviceId: activeBatch.deviceId }),
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        alert(data.error || 'No se pudo reiniciar el peso.');
+        alert(data.error || 'No se pudo reiniciar la balanza.');
         return;
       }
       currentLiveWeight = 0;
       pesoLiveDisplay.textContent = '0.000';
-      pesoLiveMeta.textContent = `${deviceId} · peso reiniciado`;
-      setEstado('Estado: <strong>Peso reiniciado</strong> — listo para nueva lectura', 'success');
+      setEstado('Balanza en cero. Lista para la siguiente unidad.', 'waiting');
     } catch {
-      alert('Error de conexión al reiniciar el peso.');
+      alert('Error de conexión.');
     } finally {
-      pesoReiniciarBtn.disabled = !selectedDeviceId();
+      reiniciarBtn.disabled = false;
     }
   }
 
-  async function registrarPesaje() {
-    if (!balanzaInput.value) {
-      alert('Seleccione una balanza antes de registrar el pesaje.');
-      return;
-    }
+  async function cerrarLote() {
+    if (!activeBatch) return;
+    const count = capturesBody.querySelectorAll('tr[data-record-id]').length;
+    if (!confirm(`¿Finalizar este lote?\n\nSe pesaron ${count} unidad(es). Podrá iniciar un lote nuevo con otros datos.`)) return;
 
-    const tipo = document.querySelector('input[name="tipo_producto"]:checked');
-    if (!tipo) {
-      alert('Seleccione el tipo de producto.');
-      return;
-    }
-
-    if (currentLiveWeight <= 0) {
-      alert('No hay lectura IoT disponible. Envíe el peso desde Postman o el dispositivo antes de registrar.');
-      return;
-    }
-
-    const payload = {
-      deviceId: selectedDeviceId(),
-      operador: document.getElementById('mock_operador').value,
-      turno: document.getElementById('mock_turno').value,
-      tipoProducto: tipo.value,
-      cliente: document.getElementById('mock_cliente').value.trim(),
-      producto: document.getElementById('mock_producto').value.trim(),
-      almacen: document.getElementById('mock_almacen').value.trim(),
-      cantidad: parseInt(document.getElementById('mock_cantidad').value || '1', 10),
-    };
-
-    pesoRegistrarBtn.disabled = true;
-    pesoRegistrarBtn.textContent = 'Registrando...';
-
+    cerrarLoteBtn.disabled = true;
     try {
-      const response = await fetch(PESO_REGISTRAR_URL, {
+      const response = await fetch(URLS.loteCerrar, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': CSRF_TOKEN,
-        },
-        body: JSON.stringify(payload),
+        headers: jsonHeaders(),
+        body: '{}',
       });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        alert(data.error || 'No se pudo registrar el pesaje.');
+        alert(data.error || 'No se pudo finalizar el lote.');
         return;
       }
-
-      const turno = payload.turno;
-      document.getElementById('res_id').textContent = `#${data.recordId}`;
-      document.getElementById('res_balanza').textContent = `${payload.deviceId} (Balanza ${balanzaInput.value})`;
-      document.getElementById('res_operador').textContent = payload.operador;
-      document.getElementById('res_turno').textContent = turnoLabels[turno] || turno;
-      document.getElementById('res_tipo').textContent = tipo.value === 'saco' ? 'Saco' : 'Caja';
-      document.getElementById('res_cliente').textContent = payload.cliente;
-      document.getElementById('res_producto').textContent = payload.producto;
-      document.getElementById('res_almacen').textContent = payload.almacen;
-      document.getElementById('res_cantidad').textContent = payload.cantidad;
-      document.getElementById('peso_esperado').textContent = Number(data.pesoEsperadoKg).toFixed(3);
-      document.getElementById('peso_real').textContent = Number(data.pesoRealKg).toFixed(3);
-      document.getElementById('peso_diff').textContent = Number(data.pesoDiferenciaKg).toFixed(3);
-      document.getElementById('res_detail_link').href = data.detailUrl;
-      document.getElementById('peso_result').style.display = 'block';
-      setEstado(`Estado: <strong>Pesaje #${data.recordId} registrado</strong>`, 'success');
-      document.getElementById('peso_result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      alert(`Lote finalizado correctamente.\n${data.totalCaptures} unidad(es) registradas.`);
+      showConfigPhase();
+      balanzaInput.value = '';
+      balanzaHint.innerHTML = 'Ninguna balanza seleccionada';
+      balanzaButtons.forEach((b) => b.classList.remove('is-selected'));
     } catch {
-      alert('Error de conexión al registrar el pesaje.');
+      alert('Error de conexión.');
     } finally {
-      pesoRegistrarBtn.disabled = false;
-      pesoRegistrarBtn.textContent = 'Registrar pesaje';
+      cerrarLoteBtn.disabled = false;
     }
   }
 
@@ -530,42 +973,16 @@
       balanzaButtons.forEach((b) => b.classList.remove('is-selected'));
       btn.classList.add('is-selected');
       balanzaInput.value = btn.dataset.balanza;
-      actualizarResumen();
-      pollPesoLive();
+      const id = deviceIdFromBalanza(btn.dataset.balanza);
+      balanzaHint.innerHTML = `Seleccionada: <strong>Balanza ${btn.dataset.balanza}</strong> (${id})`;
     });
   });
 
-  pesoReiniciarBtn.addEventListener('click', reiniciarPeso);
+  capturarBtn.addEventListener('click', () => capturarPeso(false));
+  reiniciarBtn.addEventListener('click', reiniciarPeso);
+  cerrarLoteBtn.addEventListener('click', cerrarLote);
 
-  ['mock_operador', 'mock_turno'].forEach((id) => {
-    document.getElementById(id).addEventListener('change', actualizarResumen);
-  });
-
-  document.querySelectorAll('input[name="tipo_producto"]').forEach((radio) => {
-    radio.addEventListener('change', actualizarResumen);
-  });
-
-  function actualizarResumen() {
-    const balanza = balanzaInput.value;
-    const operador = document.getElementById('mock_operador').value;
-    const turno = document.getElementById('mock_turno').value;
-    const tipo = document.querySelector('input[name="tipo_producto"]:checked');
-
-    if (!balanza && !operador && !turno && !tipo) {
-      resumenEl.hidden = true;
-      return;
-    }
-
-    resumenEl.hidden = false;
-    resumenEl.innerHTML = [
-      balanza ? `<div>Balanza activa: <strong>Balanza ${balanza}</strong> (${deviceIdFromBalanza(balanza)})</div>` : '',
-      operador ? `<div>Operador: <strong>${operador}</strong></div>` : '',
-      turno ? `<div>Turno: <strong>${turnoLabels[turno] || turno}</strong></div>` : '',
-      tipo ? `<div>Tipo de producto: <strong>${tipo.value === 'saco' ? 'Saco' : 'Caja'}</strong></div>` : '',
-    ].filter(Boolean).join('');
-  }
-
-  pollPesoLive();
-  setInterval(pollPesoLive, 2000);
+  updateSteps('config');
+  cargarLoteActivo();
 </script>
 {% endblock %}

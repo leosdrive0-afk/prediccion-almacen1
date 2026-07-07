@@ -9,6 +9,7 @@ from .models import (
     ScaleDeviceState,
     ScaleReading,
     Warehouse,
+    WeightBatch,
     WeightRecord,
 )
 
@@ -68,15 +69,33 @@ class ScaleDeviceStateAdmin(admin.ModelAdmin):
 
 @admin.register(WeightRecord)
 class WeightRecordAdmin(admin.ModelAdmin):
-    list_filter = ["turno", "tipo_producto", "device_id", "created_at"]
-    search_fields = ["cliente", "producto", "operador", "device_id", "created_by__username"]
+    list_filter = ["turno", "tipo_producto", "device_id", "created_at", "batch"]
+    search_fields = ["proveedor", "producto", "operador", "device_id", "created_by__username"]
     list_display = [
         "id",
+        "batch",
         "device_id",
-        "cliente",
+        "proveedor",
         "producto",
         "peso_real_kg",
         "created_by",
         "created_at",
     ]
     readonly_fields = ["created_at"]
+
+
+@admin.register(WeightBatch)
+class WeightBatchAdmin(admin.ModelAdmin):
+    list_filter = ["status", "tipo_producto", "device_id", "started_at"]
+    search_fields = ["proveedor", "producto", "operador", "device_id", "created_by__username"]
+    list_display = [
+        "id",
+        "device_id",
+        "proveedor",
+        "producto",
+        "status",
+        "created_by",
+        "started_at",
+        "closed_at",
+    ]
+    readonly_fields = ["started_at"]

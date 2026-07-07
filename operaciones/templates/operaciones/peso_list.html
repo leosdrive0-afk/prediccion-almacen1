@@ -1,15 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}Mis registros de peso — SmartStock{% endblock %}
+{% block title %}Historial de pesajes — SmartStock{% endblock %}
 
 {% block content %}
 <div class="page">
   <div class="card card-pad">
-    <h1 class="page-title">Mis registros de peso</h1>
-    <p class="page-subtitle">Historial de pesajes registrados por {{ user.get_full_name|default:user.username }}.</p>
+    <h1 class="page-title">Historial de pesajes</h1>
+    <p class="page-subtitle">
+      Todas las unidades que registró <strong>{{ user.get_full_name|default:user.username }}</strong>.
+      Cada fila es un pesaje individual; las del mismo lote comparten número de lote.
+    </p>
 
     <div class="toolbar">
-      <a class="btn btn-primary" href="{% url 'operaciones:peso_create' %}">Nuevo pesaje</a>
+      <a class="btn btn-primary" href="{% url 'operaciones:peso_create' %}">Iniciar nuevo lote</a>
     </div>
 
     <div class="stack-top-lg">
@@ -18,11 +21,12 @@
           <table class="table">
             <thead>
               <tr>
-                <th>ID</th>
+                <th>#</th>
+                <th>Lote</th>
                 <th>Balanza</th>
-                <th>Cliente</th>
+                <th>Proveedor</th>
                 <th>Producto</th>
-                <th>Peso real</th>
+                <th>Peso medido</th>
                 <th>Diferencia</th>
                 <th>Fecha</th>
               </tr>
@@ -31,10 +35,11 @@
               {% for r in records %}
                 <tr>
                   <td>
-                    <a href="{% url 'operaciones:peso_detail' r.id %}"><strong>#{{ r.id }}</strong></a>
+                    <a href="{% url 'operaciones:peso_detail' r.id %}"><strong>{{ r.id }}</strong></a>
                   </td>
+                  <td>{% if r.batch_id %}Lote #{{ r.batch_id }}{% else %}—{% endif %}</td>
                   <td>{{ r.device_id }}</td>
-                  <td>{{ r.cliente }}</td>
+                  <td>{{ r.proveedor }}</td>
                   <td>{{ r.producto }}</td>
                   <td>{{ r.peso_real_kg }} kg</td>
                   <td>{{ r.peso_diferencia_kg }} kg</td>
@@ -45,7 +50,10 @@
           </table>
         </div>
       {% else %}
-        <div class="alert">No tienes pesajes registrados aún.</div>
+        <div class="alert">
+          Aún no tiene pesajes guardados.
+          <a href="{% url 'operaciones:peso_create' %}">Inicie un lote</a> para comenzar.
+        </div>
       {% endif %}
     </div>
   </div>

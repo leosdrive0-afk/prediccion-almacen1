@@ -5,10 +5,11 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
 
 from .iot_auth import require_iot_api_key
-from .models import ScaleDeviceState, ScaleReading, WeightRecord
+from .models import ScaleDeviceState, ScaleReading, WeightBatch, WeightRecord
 
 TURNO_VALUES = {"mañana", "tarde", "noche"}
 TIPO_VALUES = {"saco", "caja"}
@@ -157,6 +158,190 @@ def _expected_weight(cantidad: int, tipo_producto: str) -> Decimal:
     return Decimal(cantidad) * peso_por_unidad
 
 
+def _get_active_batch(user) -> WeightBatch | None:
+    return (
+        WeightBatch.objects.filter(created_by=user, status=WeightBatch.STATUS_ACTIVE)
+        .order_by("-started_at", "-id")
+        .first()
+    )
+
+
+def _batch_to_dict(batch: WeightBatch) -> dict:
+    return {
+        "batchId": batch.id,
+        "deviceId": batch.device_id,
+        "tipoProducto": batch.tipo_producto,
+        "proveedor": batch.proveedor,
+        "producto": batch.producto,
+        "operador": batch.operador,
+        "startedAt": batch.started_at.isoformat(),
+        "captureCount": batch.captures.count(),
+    }
+
+
+def _capture_to_dict(record: WeightRecord, sequence: int | None = None) -> dict:
+    data = {
+        "recordId": record.id,
+        "pesoRealKg": float(record.peso_real_kg),
+        "pesoEsperadoKg": float(record.peso_esperado_kg),
+        "pesoDiferenciaKg": float(record.peso_diferencia_kg),
+        "readingId": record.scale_reading_id,
+        "createdAt": record.created_at.isoformat(),
+        "detailUrl": f"/operaciones/peso/registros/{record.id}/",
+    }
+    if sequence is not None:
+        data["sequence"] = sequence
+    return data
+
+
+def _create_capture_from_batch(batch: WeightBatch, user) -> tuple[WeightRecord | None, str | None]:
+    state = (
+        ScaleDeviceState.objects.filter(device_id=batch.device_id)
+        .select_related("last_reading")
+        .first()
+    )
+    if not state or state.weight_kg <= 0 or not state.last_reading:
+        return None, (
+            "No hay lectura IoT disponible para esta balanza. "
+            "Envíe el peso desde el dispositivo antes de capturar."
+        )
+
+    reading = state.last_reading
+    if WeightRecord.objects.filter(batch=batch, scale_reading=reading).exists():
+        return None, "Esta lectura IoT ya fue registrada en el lote actual."
+
+    cantidad = 1
+    peso_esperado = _expected_weight(cantidad, batch.tipo_producto)
+    peso_real = state.weight_kg
+    peso_diferencia = peso_real - peso_esperado
+
+    record = WeightRecord.objects.create(
+        batch=batch,
+        created_by=user,
+        device_id=batch.device_id,
+        operador=batch.operador,
+        turno="mañana",
+        tipo_producto=batch.tipo_producto,
+        proveedor=batch.proveedor,
+        producto=batch.producto,
+        almacen="",
+        cantidad=cantidad,
+        peso_esperado_kg=peso_esperado,
+        peso_real_kg=peso_real,
+        peso_diferencia_kg=peso_diferencia,
+        scale_reading=reading,
+    )
+    return record, None
+
+
+@login_required
+@require_GET
+def peso_lote_activo(request):
+    batch = _get_active_batch(request.user)
+    if not batch:
+        return JsonResponse({"success": True, "batch": None, "captures": []})
+
+    captures = list(batch.captures.order_by("created_at", "id"))
+    return JsonResponse(
+        {
+            "success": True,
+            "batch": _batch_to_dict(batch),
+            "captures": [_capture_to_dict(r, i + 1) for i, r in enumerate(captures)],
+        }
+    )
+
+
+@login_required
+@require_POST
+def peso_lote_iniciar(request):
+    try:
+        body = json.loads(request.body)
+    except json.JSONDecodeError:
+        return _json_error("JSON inválido.")
+
+    device_id = (body.get("deviceId") or "").strip()
+    tipo_producto = (body.get("tipoProducto") or "").strip()
+    proveedor = (body.get("proveedor") or "").strip()
+    producto = (body.get("producto") or "").strip()
+
+    if not device_id:
+        return _json_error("Seleccione una balanza.")
+    if tipo_producto not in TIPO_VALUES:
+        return _json_error("Tipo de empaque inválido.")
+    if not proveedor:
+        return _json_error("Campo proveedor requerido.")
+    if not producto:
+        return _json_error("Campo producto requerido.")
+
+    operador = (body.get("operador") or "").strip()
+    if not operador:
+        operador = request.user.get_full_name() or request.user.username
+
+    with transaction.atomic():
+        active = _get_active_batch(request.user)
+        if active:
+            active.status = WeightBatch.STATUS_CLOSED
+            active.closed_at = timezone.now()
+            active.save(update_fields=["status", "closed_at"])
+
+        batch = WeightBatch.objects.create(
+            created_by=request.user,
+            device_id=device_id,
+            tipo_producto=tipo_producto,
+            proveedor=proveedor,
+            producto=producto,
+            operador=operador,
+        )
+
+    return JsonResponse({"success": True, "batch": _batch_to_dict(batch)}, status=201)
+
+
+@login_required
+@require_POST
+def peso_lote_capturar(request):
+    batch = _get_active_batch(request.user)
+    if not batch:
+        return _json_error("No hay un lote activo. Configure el lote primero.", status=404)
+
+    with transaction.atomic():
+        batch = WeightBatch.objects.select_for_update().get(pk=batch.pk)
+        record, error = _create_capture_from_batch(batch, request.user)
+        if error:
+            return _json_error(error)
+
+    sequence = batch.captures.filter(created_at__lte=record.created_at, id__lte=record.id).count()
+    return JsonResponse(
+        {
+            "success": True,
+            "batch": _batch_to_dict(batch),
+            "capture": _capture_to_dict(record, sequence),
+        },
+        status=201,
+    )
+
+
+@login_required
+@require_POST
+def peso_lote_cerrar(request):
+    batch = _get_active_batch(request.user)
+    if not batch:
+        return _json_error("No hay un lote activo.", status=404)
+
+    batch.status = WeightBatch.STATUS_CLOSED
+    batch.closed_at = timezone.now()
+    batch.save(update_fields=["status", "closed_at"])
+
+    captures = list(batch.captures.order_by("created_at", "id"))
+    return JsonResponse(
+        {
+            "success": True,
+            "batch": _batch_to_dict(batch),
+            "captures": [_capture_to_dict(r, i + 1) for i, r in enumerate(captures)],
+            "totalCaptures": len(captures),
+        }
+    )
+
+
 @login_required
 @require_POST
 def peso_registrar(request):
@@ -170,7 +355,7 @@ def peso_registrar(request):
     operador = (body.get("operador") or "").strip()
     turno = (body.get("turno") or "").strip()
     tipo_producto = (body.get("tipoProducto") or "").strip()
-    cliente = (body.get("cliente") or "").strip()
+    proveedor = (body.get("proveedor") or body.get("cliente") or "").strip()
     producto = (body.get("producto") or "").strip()
     almacen = (body.get("almacen") or "").strip()
 
@@ -182,12 +367,10 @@ def peso_registrar(request):
         return _json_error("Turno inválido.")
     if tipo_producto not in TIPO_VALUES:
         return _json_error("Tipo de producto inválido.")
-    if not cliente:
-        return _json_error("Campo cliente requerido.")
+    if not proveedor:
+        return _json_error("Campo proveedor requerido.")
     if not producto:
         return _json_error("Campo producto requerido.")
-    if not almacen:
-        return _json_error("Campo almacén requerido.")
 
     try:
         cantidad = int(body.get("cantidad"))
@@ -214,7 +397,7 @@ def peso_registrar(request):
         operador=operador,
         turno=turno,
         tipo_producto=tipo_producto,
-        cliente=cliente,
+        proveedor=proveedor,
         producto=producto,
         almacen=almacen,
         cantidad=cantidad,

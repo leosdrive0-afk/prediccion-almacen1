@@ -6,18 +6,22 @@
 <div class="page">
   <div class="card card-pad">
     <h1 class="page-title">Pesaje #{{ record.id }}</h1>
-    <p class="page-subtitle">{{ record.cliente }} — {{ record.producto }} · {{ record.device_id }}</p>
+    <p class="page-subtitle">{{ record.proveedor }} — {{ record.producto }} · {{ record.device_id }}</p>
 
     <div class="table-wrap stack-top">
       <table class="table">
         <tbody>
+          {% if record.batch %}
+            <tr><th>Lote</th><td>#{{ record.batch.id }}</td></tr>
+          {% endif %}
           <tr><th>Balanza</th><td>{{ record.device_id }}</td></tr>
-          <tr><th>Operador</th><td>{{ record.operador }}</td></tr>
-          <tr><th>Turno</th><td>{{ record.get_turno_display }}</td></tr>
-          <tr><th>Tipo de producto</th><td>{{ record.get_tipo_producto_display }}</td></tr>
-          <tr><th>Cliente</th><td>{{ record.cliente }}</td></tr>
+          <tr><th>Operador</th><td>{{ record.operador|default:"—" }}</td></tr>
+          <tr><th>Tipo de empaque</th><td>{{ record.get_tipo_producto_display }}</td></tr>
+          <tr><th>Proveedor</th><td>{{ record.proveedor }}</td></tr>
           <tr><th>Producto</th><td>{{ record.producto }}</td></tr>
-          <tr><th>Almacén</th><td>{{ record.almacen }}</td></tr>
+          {% if record.almacen %}
+            <tr><th>Almacén</th><td>{{ record.almacen }}</td></tr>
+          {% endif %}
           <tr><th>Cantidad</th><td>{{ record.cantidad }} unidades</td></tr>
           <tr><th>Peso esperado</th><td>{{ record.peso_esperado_kg }} kg</td></tr>
           <tr><th>Peso real (IoT)</th><td>{{ record.peso_real_kg }} kg</td></tr>
@@ -33,7 +37,7 @@
 
     <div class="stack-top">
       <a class="btn btn-secondary" href="{% url 'operaciones:peso_list' %}">Volver a mis registros</a>
-      <a class="btn btn-primary" href="{% url 'operaciones:peso_create' %}">Nuevo pesaje</a>
+      <a class="btn btn-primary" href="{% url 'operaciones:peso_create' %}">Nuevo lote</a>
     </div>
   </div>
 </div>

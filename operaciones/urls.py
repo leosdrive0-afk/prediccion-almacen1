@@ -22,6 +22,10 @@ urlpatterns = [
     path("peso/live/", peso_api.peso_live, name="peso_live"),
     path("peso/reiniciar/", peso_api.peso_reiniciar, name="peso_reiniciar"),
     path("peso/registrar/", peso_api.peso_registrar, name="peso_registrar"),
+    path("peso/lote/activo/", peso_api.peso_lote_activo, name="peso_lote_activo"),
+    path("peso/lote/iniciar/", peso_api.peso_lote_iniciar, name="peso_lote_iniciar"),
+    path("peso/lote/capturar/", peso_api.peso_lote_capturar, name="peso_lote_capturar"),
+    path("peso/lote/cerrar/", peso_api.peso_lote_cerrar, name="peso_lote_cerrar"),
     path("peso/registros/", views.peso_list, name="peso_list"),
     path("peso/registros/<int:record_id>/", views.peso_detail, name="peso_detail"),
 ]

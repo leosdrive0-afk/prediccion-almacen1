@@ -226,6 +226,7 @@ def peso_create(request):
 def peso_list(request):
     records = (
         WeightRecord.objects.filter(created_by=request.user)
+        .select_related("batch")
         .order_by("-created_at", "-id")[:200]
     )
     return render(request, "operaciones/peso_list.html", {"records": records})
@@ -234,7 +235,7 @@ def peso_list(request):
 @login_required
 def peso_detail(request, record_id: int):
     record = get_object_or_404(
-        WeightRecord.objects.select_related("created_by", "scale_reading"),
+        WeightRecord.objects.select_related("created_by", "scale_reading", "batch"),
         id=record_id,
         created_by=request.user,
     )

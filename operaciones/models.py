@@ -142,29 +142,77 @@ class ScaleReading(models.Model):
         return f"{self.device_id}: {self.weight_kg} kg"
 
 
+TIPO_EMPAQUE_CHOICES = [
+    ("saco", "Saco"),
+    ("caja", "Caja"),
+]
+
+
+class WeightBatch(models.Model):
+    STATUS_ACTIVE = "active"
+    STATUS_CLOSED = "closed"
+    STATUS_CHOICES = [
+        (STATUS_ACTIVE, "Activo"),
+        (STATUS_CLOSED, "Cerrado"),
+    ]
+
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="weight_batches",
+    )
+    device_id = models.CharField(max_length=50, db_index=True)
+    tipo_producto = models.CharField(max_length=20, choices=TIPO_EMPAQUE_CHOICES)
+    proveedor = models.CharField(max_length=150)
+    producto = models.CharField(max_length=150)
+    operador = models.CharField(max_length=150)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_ACTIVE, db_index=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        verbose_name = "Lote de pesaje"
+        verbose_name_plural = "Lotes de pesaje"
+        ordering = ["-started_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["created_by"],
+                condition=models.Q(status="active"),
+                name="uniq_active_weightbatch_per_user",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"Lote #{self.id} — {self.proveedor} / {self.producto}"
+
+
 class WeightRecord(models.Model):
     TURNO_CHOICES = [
         ("mañana", "Mañana"),
         ("tarde", "Tarde"),
         ("noche", "Noche"),
     ]
-    TIPO_CHOICES = [
-        ("saco", "Saco"),
-        ("caja", "Caja"),
-    ]
+    TIPO_CHOICES = TIPO_EMPAQUE_CHOICES
 
+    batch = models.ForeignKey(
+        WeightBatch,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="captures",
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,
         related_name="weight_records",
     )
     device_id = models.CharField(max_length=50, db_index=True)
-    operador = models.CharField(max_length=150)
-    turno = models.CharField(max_length=20, choices=TURNO_CHOICES)
+    operador = models.CharField(max_length=150, blank=True, default="")
+    turno = models.CharField(max_length=20, choices=TURNO_CHOICES, blank=True, default="mañana")
     tipo_producto = models.CharField(max_length=20, choices=TIPO_CHOICES)
-    cliente = models.CharField(max_length=150)
+    proveedor = models.CharField(max_length=150)
     producto = models.CharField(max_length=150)
-    almacen = models.CharField(max_length=150)
+    almacen = models.CharField(max_length=150, blank=True, default="")
     cantidad = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     peso_esperado_kg = models.DecimalField(max_digits=10, decimal_places=3)
     peso_real_kg = models.DecimalField(max_digits=10, decimal_places=3)
