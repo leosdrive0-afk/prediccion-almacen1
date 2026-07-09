@@ -154,16 +154,13 @@ def acerca(request):
 
 
 def health(request):
+    """Liveness probe for Railway. Always returns 200 when Django is up."""
     if not model_file_available(settings.MODEL_PATH):
-        return JsonResponse(
-            {"status": "starting", "model": "downloading"},
-            status=503,
-        )
-    try:
-        get_prediction_model()
-    except ModelNotReadyError:
-        return JsonResponse(
-            {"status": "starting", "model": "loading"},
-            status=503,
-        )
-    return JsonResponse({"status": "ok", "model": "ready"})
+        model_status = "downloading"
+    else:
+        try:
+            get_prediction_model()
+            model_status = "ready"
+        except ModelNotReadyError:
+            model_status = "loading"
+    return JsonResponse({"status": "ok", "model": model_status})

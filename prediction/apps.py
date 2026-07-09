@@ -1,5 +1,6 @@
 import os
 import sys
+import threading
 
 from django.apps import AppConfig
 
@@ -25,7 +26,17 @@ class PredictionConfig(AppConfig):
 
         from .model_loader import warmup_prediction_model
 
-        warmup_prediction_model()
+        def _warmup() -> None:
+            try:
+                warmup_prediction_model()
+            except Exception as exc:
+                print(f"Background model warmup failed: {exc}")
+
+        threading.Thread(
+            target=_warmup,
+            name="prediction-model-warmup",
+            daemon=True,
+        ).start()
 
     @staticmethod
     def _should_skip_model_init() -> bool:

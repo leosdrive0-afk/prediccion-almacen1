@@ -6,6 +6,9 @@ echo "=== Railway startup ==="
 echo "=== Running migrations ==="
 python manage.py migrate --noinput
 
+echo "=== Collecting static files ==="
+python manage.py collectstatic --noinput
+
 if [ "${RUN_SEED:-0}" = "1" ]; then
   echo "=== Running seed_operaciones ==="
   python manage.py seed_operaciones
@@ -21,7 +24,4 @@ else
 fi
 
 echo "=== Starting Gunicorn ==="
-exec gunicorn desercion_escolar.wsgi:application \
-  --bind 0.0.0.0:${PORT:-8000} \
-  --workers 1 \
-  --timeout 180
+exec gunicorn desercion_escolar.wsgi:application -c gunicorn.conf.py
